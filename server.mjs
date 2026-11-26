@@ -139,7 +139,7 @@ async function refine(body) {
   return { suggestion: output, model, provider: 'Cloudflare Workers AI', prompt_version: 'newsletter-refine-v1' };
 }
 
-const server = createServer(async (req, res) => {
+export async function handler(req, res) {
   res.setHeader('x-content-type-options', 'nosniff');
   res.setHeader('referrer-policy', 'same-origin');
   const url = new URL(req.url, `http://${host}:${port}`);
@@ -172,6 +172,11 @@ const server = createServer(async (req, res) => {
     if (req.method === 'HEAD') return res.end();
     return res.end(content);
   } catch { return sendJson(res, 404, { error: 'Not found.' }); }
-});
+}
 
-server.listen(port, host, () => console.log(`Newsletter Studio running at http://${host}:${port}`));
+// Vercel imports this file as a serverless function. Keep the local HTTP server
+// for `npm start`, but do not bind a port during a Vercel function invocation.
+if (process.env.VERCEL !== '1') {
+  const server = createServer(handler);
+  server.listen(port, host, () => console.log(`Newsletter Studio running at http://${host}:${port}`));
+}
